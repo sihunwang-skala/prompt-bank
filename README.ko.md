@@ -55,52 +55,47 @@ npm run test:web   # 공유/i18n 테스트 7개
 
 ## 스크린샷
 
-오프라인 모의 모델과 데모 데이터로 실행한 앱에서 캡처했습니다 (`scripts/screenshots.py`). 대부분 영어 화면입니다.
+**한국어** UI 화면입니다. 오프라인 모의 모델과 데모 데이터로 실행한 앱에서 캡처했습니다 (`scripts/screenshots.py`). 영어 화면은 [English](README.md)에서 볼 수 있습니다. (데모 데이터의 제약·프롬프트 내용은 영어로 입력되어 있습니다.)
 
 **로그인 (언어 전환 + 라이선스)**
 
-![로그인 (언어 전환 + 라이선스)](docs/screenshots/01-login.png)
+![로그인 (언어 전환 + 라이선스)](docs/screenshots/ko/01-login.png)
 
 **홈: 실행 중 작업, 최근 작업, 패키지, 프롬프트**
 
-![홈: 실행 중 작업, 최근 작업, 패키지, 프롬프트](docs/screenshots/02-home.png)
+![홈: 실행 중 작업, 최근 작업, 패키지, 프롬프트](docs/screenshots/ko/02-home.png)
 
 **프롬프트 작성기: 구조화 섹션, 참고자료, 검증 깊이, 비용·시간 예상**
 
-![프롬프트 작성기: 구조화 섹션, 참고자료, 검증 깊이, 비용·시간 예상](docs/screenshots/03-compose.png)
+![프롬프트 작성기: 구조화 섹션, 참고자료, 검증 깊이, 비용·시간 예상](docs/screenshots/ko/03-compose.png)
 
 **재귀 검증: 라운드별 문제, 수정, 제약 준수, 비용·시간**
 
-![재귀 검증: 라운드별 문제, 수정, 제약 준수, 비용·시간](docs/screenshots/04-validation.png)
+![재귀 검증: 라운드별 문제, 수정, 제약 준수, 비용·시간](docs/screenshots/ko/04-validation.png)
 
 **제약 레지스트리: 사용자 결정을 기다리는 충돌 감지**
 
-![제약 레지스트리: 사용자 결정을 기다리는 충돌 감지](docs/screenshots/05-constraints.png)
+![제약 레지스트리: 사용자 결정을 기다리는 충돌 감지](docs/screenshots/ko/05-constraints.png)
 
 **라이브러리: 검색, 즐겨찾기, 버전 비교, 작업 패키지**
 
-![라이브러리: 검색, 즐겨찾기, 버전 비교, 작업 패키지](docs/screenshots/06-library.png)
+![라이브러리: 검색, 즐겨찾기, 버전 비교, 작업 패키지](docs/screenshots/ko/06-library.png)
 
 **참고자료: 역할, 미리보기, 프롬프트 인젝션 경고**
 
-![참고자료: 역할, 미리보기, 프롬프트 인젝션 경고](docs/screenshots/07-references.png)
+![참고자료: 역할, 미리보기, 프롬프트 인젝션 경고](docs/screenshots/ko/07-references.png)
 
 **이력 및 요청형 보고서 (저장된 기록만으로 생성)**
 
-![이력 및 요청형 보고서 (저장된 기록만으로 생성)](docs/screenshots/08-history-reports.png)
+![이력 및 요청형 보고서 (저장된 기록만으로 생성)](docs/screenshots/ko/08-history-reports.png)
 
 **설정: 외부 제공자 동의, 보관, 라이선스, 데이터 삭제**
 
-![설정: 외부 제공자 동의, 보관, 라이선스, 데이터 삭제](docs/screenshots/09-settings.png)
-
-**한국어 화면**
-
-![한국어 화면](docs/screenshots/10-korean-validation.png)
+![설정: 외부 제공자 동의, 보관, 라이선스, 데이터 삭제](docs/screenshots/ko/09-settings.png)
 
 **모바일 폭 웹 (하단 탭)**
 
-![모바일 폭 웹 (하단 탭)](docs/screenshots/11-mobile-web-home.png)
-
+![모바일 폭 웹 (하단 탭)](docs/screenshots/ko/10-mobile-web-home.png)
 
 ## 문서
 [아키텍처](docs/ARCHITECTURE.md) · [요구사항 레지스트리](docs/REQUIREMENTS.md) · [보안](docs/SECURITY.md) · [배포](docs/DEPLOYMENT.md) · [테스트 보고서](docs/TEST_REPORT.md) · [한계](docs/LIMITATIONS.md) (문서는 영어로 작성)

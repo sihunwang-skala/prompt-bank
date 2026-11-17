@@ -55,52 +55,47 @@ Real providers: copy `.env.example`, set `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` 
 
 ## Screenshots
 
-Captured from the running app with the offline mock model and demo data (`scripts/screenshots.py`).
+Screens of the **English** UI, captured from the running app with the offline mock model and demo data (`scripts/screenshots.py`). Switch to [한국어](README.ko.md) to see the Korean UI.
 
 **Login (language switch + license)**
 
-![Login (language switch + license)](docs/screenshots/01-login.png)
+![Login (language switch + license)](docs/screenshots/en/01-login.png)
 
 **Home: running tasks, recent tasks, packages, prompts**
 
-![Home: running tasks, recent tasks, packages, prompts](docs/screenshots/02-home.png)
+![Home: running tasks, recent tasks, packages, prompts](docs/screenshots/en/02-home.png)
 
 **Prompt composer: structured sections, references, validation depth, cost/time estimate**
 
-![Prompt composer: structured sections, references, validation depth, cost/time estimate](docs/screenshots/03-compose.png)
+![Prompt composer: structured sections, references, validation depth, cost/time estimate](docs/screenshots/en/03-compose.png)
 
 **Recursive validation: issues, repairs, constraint compliance per round, cost and time**
 
-![Recursive validation: issues, repairs, constraint compliance per round, cost and time](docs/screenshots/04-validation.png)
+![Recursive validation: issues, repairs, constraint compliance per round, cost and time](docs/screenshots/en/04-validation.png)
 
 **Constraint registry with a detected conflict awaiting your decision**
 
-![Constraint registry with a detected conflict awaiting your decision](docs/screenshots/05-constraints.png)
+![Constraint registry with a detected conflict awaiting your decision](docs/screenshots/en/05-constraints.png)
 
 **Library: search, favorites, version compare, task packages**
 
-![Library: search, favorites, version compare, task packages](docs/screenshots/06-library.png)
+![Library: search, favorites, version compare, task packages](docs/screenshots/en/06-library.png)
 
 **References: roles, previews, prompt-injection warning**
 
-![References: roles, previews, prompt-injection warning](docs/screenshots/07-references.png)
+![References: roles, previews, prompt-injection warning](docs/screenshots/en/07-references.png)
 
 **History & on-demand reports (generated only from stored records)**
 
-![History & on-demand reports (generated only from stored records)](docs/screenshots/08-history-reports.png)
+![History & on-demand reports (generated only from stored records)](docs/screenshots/en/08-history-reports.png)
 
 **Settings: external-provider consent, retention, license, data deletion**
 
-![Settings: external-provider consent, retention, license, data deletion](docs/screenshots/09-settings.png)
-
-**Korean UI**
-
-![Korean UI](docs/screenshots/10-korean-validation.png)
+![Settings: external-provider consent, retention, license, data deletion](docs/screenshots/en/09-settings.png)
 
 **Mobile-width web (bottom tabs)**
 
-![Mobile-width web (bottom tabs)](docs/screenshots/11-mobile-web-home.png)
-
+![Mobile-width web (bottom tabs)](docs/screenshots/en/10-mobile-web-home.png)
 
 ## Docs
 [Architecture](docs/ARCHITECTURE.md) · [Requirements registry](docs/REQUIREMENTS.md) · [Security](docs/SECURITY.md) · [Deployment](docs/DEPLOYMENT.md) · [Test report](docs/TEST_REPORT.md) · [Limitations](docs/LIMITATIONS.md)

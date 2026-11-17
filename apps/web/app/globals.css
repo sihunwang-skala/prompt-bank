@@ -33,3 +33,4 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px s
 .mobile-nav{display:none}
 @media(max-width:900px){.shell,.shell.noside{grid-template-columns:1fr}nav.side{display:none}aside.panel{border-left:0;border-top:1px solid var(--line)}main{padding:14px 16px 76px}
 .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);z-index:5}.mobile-nav button{flex:1;border:0;border-radius:0;padding:12px 2px;font-size:12px;background:none}.mobile-nav button[aria-current=page]{color:var(--accent);font-weight:600}}
+.login label span,.top label span{white-space:nowrap}.login>div{margin-bottom:8px}

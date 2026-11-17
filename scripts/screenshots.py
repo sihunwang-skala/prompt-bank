@@ -45,34 +45,41 @@ def seed():
     time.sleep(1.5)
     return r["token"], pid, j["id"]
 
+NAMES = {"en": {"draft": "Draft structured prompt", "compare": "Compare", "gen": "Generate report"},
+         "ko": {"draft": "구조화된 프롬프트 초안", "compare": "비교", "gen": "보고서 생성"}}
+
+def shoot(br, token, jid, lang):
+    n, out = NAMES[lang], OUT / lang; out.mkdir(parents=True, exist_ok=True)
+    def page(w=1280, h=800):
+        ctx = br.new_context(viewport={"width": w, "height": h}, locale="ko-KR" if lang == "ko" else "en-US")
+        ctx.add_init_script(f"try{{localStorage.setItem('raw.token','{token}');localStorage.setItem('raw.lang','{lang}')}}catch(e){{}}")
+        pg = ctx.new_page(); pg.goto(WEB); pg.wait_for_selector("nav.side" if w > 900 else ".mobile-nav", timeout=15000); return pg
+    def nav(pg, i): pg.locator("nav.side button").nth(i).click(); pg.wait_for_timeout(700)
+    c = br.new_context(viewport={"width": 1280, "height": 800}, locale="ko-KR" if lang == "ko" else "en-US")
+    c.add_init_script(f"try{{localStorage.setItem('raw.lang','{lang}')}}catch(e){{}}")
+    lp = c.new_page(); lp.goto(WEB); lp.wait_for_selector("form"); lp.wait_for_timeout(300); lp.screenshot(path=out / "01-login.png")
+    pg = page(); pg.wait_for_timeout(800); pg.screenshot(path=out / "02-home.png")
+    nav(pg, 1)
+    pg.fill("#intent", "Analyze the market for an AI note-taking startup in Korea" if lang == "en" else "한국 AI 노트 앱 스타트업 시장을 분석해 줘")
+    pg.get_by_role("button", name=n["draft"]).click(); pg.wait_for_timeout(800)
+    pg.evaluate("window.scrollTo(0,0)"); pg.screenshot(path=out / "03-compose.png", full_page=True)
+    pg.goto(WEB); pg.wait_for_selector("nav.side"); pg.wait_for_timeout(500)
+    pg.get_by_role("link", name=jid).first.click(); pg.wait_for_timeout(1500)
+    pg.screenshot(path=out / "04-validation.png", full_page=True)
+    nav(pg, 2); pg.screenshot(path=out / "05-constraints.png", full_page=True)
+    nav(pg, 3); pg.get_by_role("button", name=n["compare"]).first.click(); pg.wait_for_timeout(700); pg.screenshot(path=out / "06-library.png", full_page=True)
+    nav(pg, 4); pg.screenshot(path=out / "07-references.png", full_page=True)
+    nav(pg, 5); pg.fill("#rq", "Which requirements were changed?" if lang == "en" else "어떤 요구사항이 바뀌었나?")
+    pg.get_by_role("button", name=n["gen"]).click(); pg.wait_for_timeout(900); pg.screenshot(path=out / "08-history-reports.png", full_page=True)
+    nav(pg, 6); pg.screenshot(path=out / "09-settings.png", full_page=True)
+    mb = page(390, 844); mb.wait_for_timeout(600); mb.screenshot(path=out / "10-mobile-web-home.png")
+
 def main():
     token, pid, jid = seed()
     with sync_playwright() as pw:
         br = pw.chromium.launch(channel="chrome")
-        def page(lang="en", w=1280, h=800):
-            ctx = br.new_context(viewport={"width": w, "height": h}, locale="ko-KR" if lang == "ko" else "en-US", device_scale_factor=1)
-            ctx.add_init_script(f"try{{localStorage.setItem('raw.token','{token}');localStorage.setItem('raw.lang','{lang}')}}catch(e){{}}")
-            pg = ctx.new_page(); pg.goto(WEB); pg.wait_for_selector("nav.side" if w > 900 else ".mobile-nav", timeout=15000); return pg
-        def nav(pg, i): pg.locator("nav.side button").nth(i).click(); pg.wait_for_timeout(700)
-        # login (logged out)
-        c = br.new_context(viewport={"width": 1280, "height": 800}); lp = c.new_page(); lp.goto(WEB); lp.wait_for_selector("form"); lp.screenshot(path=OUT / "01-login.png")
-        pg = page(); pg.wait_for_timeout(800); pg.screenshot(path=OUT / "02-home.png")
-        nav(pg, 1)
-        pg.fill("#intent", "Analyze the market for an AI note-taking startup in Korea"); pg.get_by_role("button", name="Draft structured prompt").click(); pg.wait_for_timeout(800)
-        pg.evaluate("window.scrollTo(0,0)"); pg.screenshot(path=OUT / "03-compose.png", full_page=True)
-        pg.evaluate(f"1"); pg.goto(WEB); pg.wait_for_selector("nav.side")
-        pg.locator("footer a, .panel a").first.click() if False else None
-        # job view: open via home table link for the forgetful job
-        pg.wait_for_timeout(500); pg.get_by_role("link", name=jid).first.click(); pg.wait_for_timeout(1500)
-        for d in pg.locator("details").all()[:1]: d.evaluate("e=>e.open=true")
-        pg.screenshot(path=OUT / "04-validation.png", full_page=True)
-        nav(pg, 2); pg.screenshot(path=OUT / "05-constraints.png", full_page=True)
-        nav(pg, 3); pg.get_by_role("button", name="Compare").first.click(); pg.wait_for_timeout(700); pg.screenshot(path=OUT / "06-library.png", full_page=True)
-        nav(pg, 4); pg.screenshot(path=OUT / "07-references.png", full_page=True)
-        nav(pg, 5); pg.fill("#rq", "Which requirements were changed?"); pg.get_by_role("button", name="Generate report").click(); pg.wait_for_timeout(900); pg.screenshot(path=OUT / "08-history-reports.png", full_page=True)
-        nav(pg, 6); pg.screenshot(path=OUT / "09-settings.png", full_page=True)
-        ko = page("ko"); ko.get_by_role("link", name=jid).first.click(); ko.wait_for_timeout(1500); ko.screenshot(path=OUT / "10-korean-validation.png", full_page=True)
-        mb = page("en", 390, 844); mb.wait_for_timeout(600); mb.screenshot(path=OUT / "11-mobile-web-home.png")
+        for lang in ("en", "ko"):
+            shoot(br, token, jid, lang)
         br.close()
 
 if __name__ == "__main__": main()
