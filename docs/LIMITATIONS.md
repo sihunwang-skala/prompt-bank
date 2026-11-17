@@ -8,3 +8,6 @@ Not done / not verified (exact blockers in parentheses):
 - **Infra**: no Redis/LangGraph/Supabase/Alembic/object storage; Postgres and multi-instance untested; retention not enforced; PDF export not implemented (Markdown only); no email/OAuth; tokens don't expire.
 - **Reference discovery** only returns generic suggestions; no web retrieval. Images are stored but not sent to models.
 - Semantic constraints can only be LLM-assessed → never reach `verified`.
+
+- **Accounts**: no login with ChatGPT/Claude subscriptions (not API access; unofficial token reuse violates provider terms). No per-user API-key entry in the UI (server env only). Cross-model validation (`model` + `reviewer_model`) is implemented but untested with real providers.
+- **Segments**: heading-based only; composing parts from several prompts is API-only (no UI); segments of structured prompts are converted to one Markdown body when strengthened.

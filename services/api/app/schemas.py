@@ -2,7 +2,7 @@ import re
 from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
-SECTION_KEYS = ["objective", "context", "instructions", "constraints", "output_format", "references", "evaluation_criteria"]
+SECTION_KEYS = ["body", "objective", "context", "instructions", "constraints", "output_format", "references", "evaluation_criteria"]
 
 
 class Creds(BaseModel):
@@ -81,6 +81,7 @@ class ValidationCfg(BaseModel):
 class RunIn(BaseModel):
     project_id: str
     prompt_id: str | None = None
+    segment_ids: list[str] | None = None
     task: str | None = None
     config: ValidationCfg = ValidationCfg()
     constraint_ids: list[str] | None = None
@@ -143,3 +144,24 @@ class SettingsIn(BaseModel):
     default_max_cost: float | None = None
     retention_days: int | None = Field(None, ge=1, le=3650)
     lang: Literal["en", "ko"] | None = None
+
+
+class ExtractIn(BaseModel):
+    segment_ids: list[str] = Field(min_length=1)
+    title: str = Field(min_length=1, max_length=200)
+
+
+class StrengthenIn(BaseModel):
+    addition: str = Field(min_length=1, max_length=4000)
+    note: str = ""
+
+
+class ComposePart(BaseModel):
+    prompt_id: str
+    segment_ids: list[str] = Field(min_length=1)
+
+
+class ComposeIn(BaseModel):
+    project_id: str
+    title: str = Field(min_length=1, max_length=200)
+    parts: list[ComposePart] = Field(min_length=1, max_length=30)

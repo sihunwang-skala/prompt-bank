@@ -31,6 +31,9 @@ const en = {
   historyTitle: "History & reports", reportRequest: "Ask for a report (e.g. “Which requirements changed?”)", generate: "Generate report", reportType: "Report type", rt_full: "Full history", rt_decisions: "Decisions", rt_requirements: "Requirements", rt_validation: "Validation", rt_executive: "Executive summary", download: "Download Markdown", timeline: "Timeline",
   settingsTitle: "Settings", allowExternal: "Allow sending prompts and references to external AI providers", defaultModel: "Default model", retention: "Data retention (days)", deleteAll: "Delete my account and all data", deleteConfirm: "This permanently deletes everything. Continue?", privacy: "Your content is not used for training. API keys live only on the server.",
   license: "License", licenseText: "Licensed under PolyForm Noncommercial 1.0.0. Free for personal, research and educational use; commercial use needs a separate license.",
+  examplesTitle: "Examples", installExample: "Add to my library", examplesNote: "Ready-made long prompts you can reuse, split into parts, and strengthen.",
+  segments: "Parts", segmentsHint: "Split by headings. Pick parts to run, copy out, or strengthen without touching the rest.", runSelected: "Run selected parts", extractSelected: "Copy selected into a new prompt", newPromptTitle: "Title for the new prompt",
+  strengthen: "Strengthen this part", strengthenHint: "Select exactly one part, write the extra rule, and it is appended to that part only (new version).", addRule: "Rule to add", applyRule: "Add rule", selectOne: "Select exactly one part", noneSelected: "Select at least one part", sec_body: "Full prompt (Markdown)", hideSegments: "Hide parts", chars: "chars",
   apiOffline: "Cannot reach the API. Start it with: npm run api",
 } as const;
 
@@ -65,6 +68,9 @@ const ko: Record<Key, string> = {
   historyTitle: "이력 및 보고서", reportRequest: "보고서 요청 (예: “어떤 요구사항이 바뀌었나?”)", generate: "보고서 생성", reportType: "보고서 유형", rt_full: "전체 이력", rt_decisions: "의사결정", rt_requirements: "요구사항", rt_validation: "검증", rt_executive: "경영 요약", download: "Markdown 다운로드", timeline: "타임라인",
   settingsTitle: "설정", allowExternal: "프롬프트와 참고자료를 외부 AI 제공자에게 보내는 것을 허용", defaultModel: "기본 모델", retention: "데이터 보관 기간(일)", deleteAll: "계정과 모든 데이터 삭제", deleteConfirm: "모든 데이터가 영구 삭제됩니다. 계속할까요?", privacy: "내 콘텐츠는 학습에 쓰이지 않습니다. API 키는 서버에만 있습니다.",
   license: "라이선스", licenseText: "PolyForm Noncommercial 1.0.0 라이선스. 개인·연구·교육 목적은 무료이며, 상업적 이용은 별도 라이선스가 필요합니다.",
+  examplesTitle: "예시", installExample: "내 라이브러리에 추가", examplesNote: "바로 쓰고, 구간으로 나눠 쓰고, 강화할 수 있는 긴 프롬프트 예시입니다.",
+  segments: "구간", segmentsHint: "제목(헤딩) 단위로 나뉩니다. 나머지는 건드리지 않고 일부 구간만 실행·복사·강화할 수 있습니다.", runSelected: "선택한 구간 실행", extractSelected: "선택한 구간을 새 프롬프트로 복사", newPromptTitle: "새 프롬프트 제목",
+  strengthen: "이 구간 강화", strengthenHint: "구간을 하나만 선택하고 추가 규칙을 쓰면 그 구간에만 덧붙습니다 (새 버전).", addRule: "추가할 규칙", applyRule: "규칙 추가", selectOne: "구간을 하나만 선택하세요", noneSelected: "구간을 하나 이상 선택하세요", sec_body: "전체 프롬프트 (Markdown)", hideSegments: "구간 닫기", chars: "자",
   apiOffline: "API에 연결할 수 없습니다. npm run api 로 실행하세요.",
 };
 

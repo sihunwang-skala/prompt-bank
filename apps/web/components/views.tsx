@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { fmtCost, fmtSeconds, isTerminal } from "@raw/shared";
 import { useC } from "./ctx";
 
-const SECTIONS = ["objective", "context", "instructions", "constraints", "output_format", "references", "evaluation_criteria"];
+const SECTIONS = ["body", "objective", "context", "instructions", "constraints", "output_format", "references", "evaluation_criteria"];
 const STAGES = ["generate", "critical_review", "completeness_review", "adversarial_review", "constraint_compliance", "evidence_check", "repair"];
 const ROLES = ["mandatory_requirement", "factual_source", "example_output", "visual_inspiration", "background", "negative_example"];
 const CHECKS = ["semantic", "required_section", "must_include", "forbidden", "exact_string", "max_chars", "min_chars", "json_keys"];
@@ -64,7 +64,7 @@ export function Compose() {
   const [refIds, setRefIds] = useState<string[]>([]); const [est, setEst] = useState<any>(null); const [err, setErr] = useState(""); const [msg, setMsg] = useState("");
   const [refs] = useLoad(() => api.refs(pid), [pid], [] as any[]);
   const [cons] = useLoad(() => api.constraints(pid), [pid], { constraints: [] } as any);
-  const compiled = SECTIONS.filter((k) => secs[k]?.trim()).map((k) => `## ${t("sec_" + k)}\n${secs[k].trim()}`).join("\n\n");
+  const compiled = SECTIONS.filter((k) => secs[k]?.trim()).map((k) => (k === "body" ? secs[k].trim() : `## ${t("sec_" + k)}\n${secs[k].trim()}`)).join("\n\n");
   const body = () => ({ project_id: pid, ...(promptId ? { prompt_id: promptId } : { task: compiled }), config: { ...cfg, reviewer_model: cfg.reviewer_model || null, max_cost: cfg.max_cost === "" ? null : Number(cfg.max_cost), reference_ids: refIds } });
   useEffect(() => { if (!compiled && !promptId) return setEst(null); const h = setTimeout(() => api.estimate({ ...body(), task: compiled }).then(setEst).catch(() => {}), 300); return () => clearTimeout(h); }, [compiled, cfg, refIds]);
   const build = async () => { setErr(""); try { const r = await api.post("/prompts/build", { intent, model: cfg.model }); setSecs((s) => ({ ...s, ...r.sections })); setQs(r.questions); setSug(r.suggested_references); if (!title) setTitle(intent.slice(0, 60)); } catch (e: any) { setErr(e.message); } };
@@ -80,7 +80,7 @@ export function Compose() {
       {sug.length > 0 && <div className="box"><b>{t("suggestedRefs")}</b><ul>{sug.map((q) => <li key={q}>{q}</li>)}</ul></div>}
       <div className="tabs" role="group"><button aria-pressed={tab === "structured"} onClick={() => setTab("structured")}>{t("structured")}</button><button aria-pressed={tab === "compiled"} onClick={() => setTab("compiled")}>{t("compiled")}</button></div>
       <label htmlFor="ptitle">{t("title")}</label><input id="ptitle" value={title} onChange={(e) => setTitle(e.target.value)} />
-      {tab === "structured" ? SECTIONS.map((k) => <div key={k}><label htmlFor={"s_" + k}>{t("sec_" + k)}</label><textarea id={"s_" + k} value={secs[k] || ""} onChange={(e) => setSecs({ ...secs, [k]: e.target.value })} /></div>) : <pre>{compiled || t("none")}</pre>}
+      {tab === "structured" ? SECTIONS.filter((k) => k !== "body" || secs.body !== undefined).map((k) => <div key={k}><label htmlFor={"s_" + k}>{t("sec_" + k)}</label><textarea id={"s_" + k} style={k === "body" ? { minHeight: 360, fontFamily: "ui-monospace,Menlo,monospace", fontSize: 13 } : undefined} value={secs[k] || ""} onChange={(e) => setSecs({ ...secs, [k]: e.target.value })} /></div>) : <pre>{compiled || t("none")}</pre>}
       <p><button onClick={save} disabled={!title && !compiled}>{t("savePrompt")}</button> <span className="mute">{msg}</span></p>
       <h2>{t("attachRefs")}</h2>
       {refs.map((r: any) => <label key={r.id} style={{ display: "flex", gap: 8, margin: 0, color: "inherit" }}><input type="checkbox" style={{ width: "auto" }} checked={refIds.includes(r.id)} onChange={(e) => setRefIds(e.target.checked ? [...refIds, r.id] : refIds.filter((x) => x !== r.id))} />{r.name} <span className="tag">{t("r_" + r.role)}</span></label>)}
@@ -189,10 +189,18 @@ export function Constraints() {
 }
 
 export function Library() {
-  const { t, api, pid, open, setJobId } = useC();
+  const { t, api, pid, open, setJobId, lang } = useC();
   const [q, setQ] = useState(""); const [prompts, reload, err] = useLoad(() => api.prompts(pid, q), [pid, q], [] as any[]);
   const [pk, reloadPk] = useLoad(() => api.packages(pid), [pid], [] as any[]);
   const [diff, setDiff] = useState<any>(null); const [msg, setMsg] = useState("");
+  const [examples] = useLoad(() => api.get("/examples"), [], [] as any[]);
+  const [seg, setSeg] = useState<any>(null); const [rule, setRule] = useState("");
+  const openSeg = async (p: any) => { if (seg?.id === p.id) return setSeg(null); setRule(""); setSeg({ id: p.id, list: await api.get(`/prompts/${p.id}/segments`), sel: [] }); };
+  const toggle = (sid: string) => setSeg((x: any) => ({ ...x, sel: x.sel.includes(sid) ? x.sel.filter((i: string) => i !== sid) : [...x.sel, sid] }));
+  const runSel = async () => { try { const j = await api.run({ project_id: pid, prompt_id: seg.id, segment_ids: seg.sel, config: { model: "mock-1", review_depth: "standard", max_iterations: 3, max_cost: 0.5 } }); setJobId(j.id); open("job"); } catch (e: any) { setMsg(e.message); } };
+  const extractSel = async () => { const title = prompt(t("newPromptTitle")); if (!title) return; try { await api.post(`/prompts/${seg.id}/segments/extract`, { segment_ids: seg.sel, title }); reload(); setMsg("✓"); } catch (e: any) { setMsg(e.message); } };
+  const strengthen = async () => { try { await api.post(`/prompts/${seg.id}/segments/${seg.sel[0]}/strengthen`, { addition: rule }); setRule(""); reload(); setSeg(null); setMsg("✓"); } catch (e: any) { setMsg(e.message); } };
+  const install = async (k: string) => { try { await api.post(`/projects/${pid}/examples/${k}/install`); reload(); setMsg("✓"); } catch (e: any) { setMsg(e.message); } };
   const [name, setName] = useState("");
   const fav = async (p: any) => { await api.patch(`/prompts/${p.id}`, { favorite: !p.favorite }); reload(); };
   const showDiff = async (p: any) => { const d = await api.get(`/prompts/${p.id}`); if (d.version < 2) return setMsg("v1 only"); setDiff({ id: p.id, d: await api.get(`/prompts/${p.id}/diff?a=${d.version - 1}&b=${d.version}`) }); };
@@ -205,6 +213,7 @@ export function Library() {
       <div className="row"><div><input aria-label={t("search")} placeholder={t("search")} value={q} onChange={(e) => setQ(e.target.value)} /></div><div className="fit"><label style={{ margin: 0 }}>{t("import")} <input type="file" accept=".json" onChange={(e) => importFile(e, "prompt")} style={{ width: "auto" }} /></label></div></div>
       <label>{t("packageName")}</label><input value={name} onChange={(e) => setName(e.target.value)} />
       <p className="mute">{t("packageNote")} {msg}</p>
+      {examples.length > 0 && <><h2>{t("examplesTitle")}</h2><p className="mute">{t("examplesNote")}</p>{examples.map((e: any) => <div className="box" key={e.key}><b>{e.title[lang]}</b>{e.tags.map((x: string) => <span key={x} className="tag" style={{ marginLeft: 4 }}>{x}</span>)}<p className="mute">{e.about[lang]}</p><button onClick={() => install(e.key)}>{t("installExample")}</button></div>)}</>}
       {prompts.map((p: any) => (
         <div className="box" key={p.id}>
           <b>{p.title}</b> <span className="tag">v{p.version}</span>{p.tags.map((x: string) => <span key={x} className="tag">{x}</span>)}
@@ -214,7 +223,20 @@ export function Library() {
           <button onClick={() => showDiff(p)}>{t("compare")}</button>{" "}
           <button onClick={() => api.post(`/prompts/${p.id}/duplicate`).then(reload)}>{t("duplicate")}</button>{" "}
           <button onClick={async () => download(await api.get(`/prompts/${p.id}/export`), `${p.title}.prompt.json`)}>{t("export")}</button>{" "}
-          <button onClick={() => savePkg(p)}>{t("savePackage")}</button>
+          <button onClick={() => savePkg(p)}>{t("savePackage")}</button>{" "}
+          <button onClick={() => openSeg(p)} aria-expanded={seg?.id === p.id}>{seg?.id === p.id ? t("hideSegments") : t("segments")}</button>
+          {seg?.id === p.id && (
+            <div className="box" aria-label={t("segments")}>
+              <p className="mute">{t("segmentsHint")}</p>
+              <div style={{ maxHeight: 320, overflow: "auto" }}>
+                {seg.list.map((x: any) => <label key={x.id} style={{ display: "flex", gap: 8, margin: 0, padding: "2px 0", paddingLeft: Math.max(x.level - 1, 0) * 14, color: "inherit", fontSize: 13 }}><input type="checkbox" style={{ width: "auto" }} checked={seg.sel.includes(x.id)} onChange={() => toggle(x.id)} /><span>{x.title} <span className="mute">· {x.chars} {t("chars")}</span></span></label>)}
+              </div>
+              <p><button className="primary" disabled={!seg.sel.length} onClick={runSel}>{t("runSelected")}</button>{" "}<button disabled={!seg.sel.length} onClick={extractSel}>{t("extractSelected")}</button></p>
+              <h3>{t("strengthen")}</h3><p className="mute">{seg.sel.length === 1 ? t("strengthenHint") : t("selectOne")}</p>
+              <label htmlFor="rule">{t("addRule")}</label><textarea id="rule" value={rule} onChange={(e) => setRule(e.target.value)} placeholder="- …" />
+              <button disabled={seg.sel.length !== 1 || !rule.trim()} onClick={strengthen}>{t("applyRule")}</button>
+            </div>
+          )}
           {diff?.id === p.id && diff.d.changes.map((c: any) => <div key={c.section}><h3>{t("sec_" + c.section)} ({c.status})</h3><pre>{c.diff}</pre></div>)}
         </div>
       ))}

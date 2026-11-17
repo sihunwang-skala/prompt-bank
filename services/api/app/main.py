@@ -10,7 +10,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request, UploadFile, File, 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import select, or_
-from . import config, constraints as C, history, jobs as J, reports, refs as R, security, pricing, engine as E
+from . import segments as SEG, config, constraints as C, history, jobs as J, reports, refs as R, security, pricing, engine as E
 from .db import get_db, init_engine, now, session
 from .models import *
 from .providers import get_provider, parse_json, ProviderError
@@ -167,7 +167,9 @@ def list_projects(u: User = Depends(current_user), db=Depends(get_db)):
 def compile_prompt(s: dict) -> str:
     titles = {"objective": "Objective", "context": "Context", "instructions": "Instructions", "constraints": "Constraints",
               "output_format": "Output Format", "references": "References", "evaluation_criteria": "Evaluation Criteria"}
-    return "\n\n".join(f"## {titles[k]}\n{s[k].strip()}" for k in SECTION_KEYS if s.get(k, "").strip())
+    parts = [s["body"].strip()] if s.get("body", "").strip() else []
+    parts += [f"## {titles[k]}\n{s[k].strip()}" for k in SECTION_KEYS if k != "body" and s.get(k, "").strip()]
+    return "\n\n".join(parts)
 
 
 def _prompt_out(db, p, with_versions=False):
@@ -274,6 +276,86 @@ def build_prompt(b: BuildIn, u: User = Depends(current_user)):
     return {"sections": secs, "questions": data.get("questions", []), "suggested_references": data.get("suggested_references", []),
             "note": "Suggestions only; no documents are fetched or invented. Provide the evidence yourself or attach URLs.",
             "provider": get_provider(b.model).name}
+
+
+# ---------- segments & examples ----------
+def _new_version(db, u, p, sections, note):
+    p.current_version += 1
+    db.add(PromptVersion(prompt_id=p.id, version=p.current_version, sections=sections, change_note=note))
+    db.commit()
+    history.log(db, u.id, "prompt.version", "prompt", p.id, p.project_id, version=p.current_version, note=note)
+
+
+def _compiled(db, p):
+    return _prompt_out(db, p)["compiled"]
+
+
+@app.get("/prompts/{id}/segments")
+def prompt_segments(id: str, u: User = Depends(current_user), db=Depends(get_db)):
+    p = owned(db, Prompt, id, u)
+    return SEG.public(_compiled(db, p))
+
+
+@app.post("/prompts/{id}/segments/extract")
+def extract_segments(id: str, b: ExtractIn, u: User = Depends(current_user), db=Depends(get_db)):
+    p = owned(db, Prompt, id, u)
+    try:
+        text = SEG.select(_compiled(db, p), b.segment_ids)
+    except KeyError as e:
+        raise HTTPException(422, f"unknown segment {e}")
+    out = create_prompt(p.project_id, PromptIn(title=b.title, sections={"body": text}, tags=p.tags + ["segment"], folder=p.folder), u, db)
+    history.log(db, u.id, "prompt.extracted", "prompt", out["id"], p.project_id, source=id, segments=b.segment_ids)
+    return out
+
+
+@app.post("/prompts/{id}/segments/{sid}/strengthen")
+def strengthen_segment(id: str, sid: str, b: StrengthenIn, u: User = Depends(current_user), db=Depends(get_db)):
+    """Accumulate a rule into one segment. Creates a new prompt version; earlier versions stay diffable."""
+    p = owned(db, Prompt, id, u)
+    md = _compiled(db, p)
+    try:
+        title = next(s["title"] for s in SEG.public(md) if s["id"] == sid)
+        new = SEG.strengthen(md, sid, b.addition)
+    except (StopIteration, KeyError):
+        raise HTTPException(422, "unknown segment")
+    _new_version(db, u, p, {"body": new}, b.note or f"strengthened: {title}")
+    return _prompt_out(db, p, True)
+
+
+@app.post("/prompts/compose")
+def compose_prompt(b: ComposeIn, u: User = Depends(current_user), db=Depends(get_db)):
+    owned(db, Project, b.project_id, u)
+    chunks = []
+    for part in b.parts:
+        src = owned(db, Prompt, part.prompt_id, u)
+        try:
+            chunks.append(SEG.select(_compiled(db, src), part.segment_ids).strip())
+        except KeyError as e:
+            raise HTTPException(422, f"unknown segment {e}")
+    out = create_prompt(b.project_id, PromptIn(title=b.title, sections={"body": "\n\n".join(chunks) + "\n"}, tags=["composed"]), u, db)
+    history.log(db, u.id, "prompt.composed", "prompt", out["id"], b.project_id, parts=[p.model_dump() for p in b.parts])
+    return out
+
+
+EXAMPLES = [{"key": "resume_bullets_ko", "file": "resume_bullets_ko.md", "title": {"en": "Resume bullets: 5 structures + comparison (Korean, layered prompt)", "ko": "이력서 Bullet 작성·비교 (5가지 구조, 층층이 쌓인 프롬프트)"},
+             "tags": ["example", "resume", "layered"],
+             "about": {"en": "A long prompt built up over many iterations. Use the segment panel to reuse single parts (e.g. 3.5 Korean style) or strengthen one part without touching the rest.",
+                       "ko": "여러 번 보강하며 쌓은 긴 프롬프트입니다. 구간 패널에서 3.5 한국어 문체처럼 일부만 따로 쓰거나, 다른 부분은 그대로 두고 한 구간만 강화할 수 있습니다."}}]
+
+
+@app.get("/examples")
+def list_examples():
+    return [{k: v for k, v in e.items() if k != "file"} for e in EXAMPLES]
+
+
+@app.post("/projects/{pid}/examples/{key}/install")
+def install_example(pid: str, key: str, u: User = Depends(current_user), db=Depends(get_db)):
+    ex = next((e for e in EXAMPLES if e["key"] == key), None)
+    if not ex:
+        raise HTTPException(404, "unknown example")
+    owned(db, Project, pid, u)
+    text = (Path(__file__).resolve().parents[1] / "examples" / ex["file"]).read_text(encoding="utf-8")
+    return create_prompt(pid, PromptIn(title=ex["title"]["ko"], sections={"body": text}, tags=ex["tags"]), u, db)
 
 
 # ---------- constraints ----------
@@ -466,6 +548,11 @@ def run(b: RunIn, u: User = Depends(current_user), db=Depends(get_db)):
     task = b.task
     if b.prompt_id:
         task = _prompt_out(db, owned(db, Prompt, b.prompt_id, u))["compiled"]
+        if b.segment_ids:
+            try:
+                task = SEG.select(task, b.segment_ids)
+            except KeyError as e:
+                raise HTTPException(422, f"unknown segment {e}")
     if not task:
         raise HTTPException(422, "task or prompt_id required")
     for m in {b.config.model, b.config.reviewer_model} - {None}:

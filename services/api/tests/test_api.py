@@ -378,3 +378,111 @@ def test_rate_limit(client, monkeypatch):
     main._hits.clear()
     codes = [client.get("/health").status_code for _ in range(5)]
     assert 429 in codes
+
+
+# ---- segments / layered prompts / examples ----
+def _install(client, h, pid):
+    r = client.post(f"/projects/{pid}/examples/resume_bullets_ko/install", headers=h)
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def _seg(client, h, pid_, prefix):
+    segs = client.get(f"/prompts/{pid_}/segments", headers=h).json()
+    return segs, next(s["id"] for s in segs if s["title"].startswith(prefix))
+
+
+def test_example_install_and_segments(client):
+    h, pid = signup(client)
+    assert any(e["key"] == "resume_bullets_ko" for e in client.get("/examples").json())
+    p = _install(client, h, pid)
+    assert len(p["compiled"]) > 8000 and "example" in p["tags"]
+    segs, sid = _seg(client, h, p["id"], "3.5.")
+    assert len(segs) > 30 and next(s for s in segs if s["id"] == sid)["level"] == 3
+
+
+def test_extract_segment_for_reuse_keeps_children_and_source(client):
+    h, pid = signup(client)
+    p = _install(client, h, pid)
+    _, sid = _seg(client, h, p["id"], "3.5.")
+    new = client.post(f"/prompts/{p['id']}/segments/extract", json={"segment_ids": [sid], "title": "Korean style"}, headers=h).json()
+    assert new["compiled"].startswith("### 3.5.") and "#### F." in new["compiled"] and "### 3.6" not in new["compiled"]
+    assert "segment" in new["tags"]
+    assert client.get(f"/prompts/{p['id']}", headers=h).json()["version"] == 1  # source untouched
+
+
+def test_nested_selection_is_deduplicated():
+    from app import segments as S
+    md = "# T\n\n## A\nx\n\n### A1\ny\n\n## B\nz\n"
+    ids = {s["title"]: s["id"] for s in S.split(md)}
+    out = S.select(md, [ids["A"], ids["A1"]])
+    assert out.count("A1") == 1 and "## B" not in out
+
+
+def test_fenced_code_hashes_are_not_headings():
+    from app import segments as S
+    md = "## A\n```\n# not a heading\n```\n## B\n"
+    assert [s["title"] for s in S.split(md)] == ["A", "B"]
+
+
+def test_strengthen_adds_rule_to_one_segment_only_and_versions(client):
+    h, pid = signup(client)
+    p = _install(client, h, pid)
+    _, sid = _seg(client, h, p["id"], "3.1.")
+    rule = "- 숫자와 단위 사이에는 공백을 넣지 않는다."
+    v2 = client.post(f"/prompts/{p['id']}/segments/{sid}/strengthen", json={"addition": rule, "note": "unit spacing"}, headers=h).json()
+    assert v2["version"] == 2 and v2["compiled"].count(rule) == 1
+    i = v2["compiled"].index(rule)
+    assert v2["compiled"].index("### 3.1.") < i < v2["compiled"].index("### 3.2.")  # inside 3.1, before 3.2
+    d = client.get(f"/prompts/{p['id']}/diff?a=1&b=2", headers=h).json()["changes"][0]
+    assert d["section"] == "body" and "공백" in d["diff"]
+    # strengthen again: rules accumulate, earlier one kept
+    v3 = client.post(f"/prompts/{p['id']}/segments/{sid}/strengthen", json={"addition": "- 두 번째 규칙"}, headers=h).json()
+    assert rule in v3["compiled"] and "두 번째 규칙" in v3["compiled"] and v3["version"] == 3
+    assert [e["kind"] for e in client.get(f"/projects/{pid}/history?kind=prompt.version", headers=h).json()].count("prompt.version") >= 2
+
+
+def test_strengthen_inserts_before_trailing_rule():
+    from app import segments as S
+    md = "## A\ntext\n\n---\n\n## B\nz\n"
+    out = S.strengthen(md, "s1", "- new")
+    assert out.index("- new") < out.index("---") < out.index("## B")
+
+
+def test_strengthen_unknown_segment_and_isolation(client):
+    h, pid = signup(client)
+    p = _install(client, h, pid)
+    assert client.post(f"/prompts/{p['id']}/segments/s9999/strengthen", json={"addition": "x"}, headers=h).status_code == 422
+    h2, _ = signup(client, "other@example.com")
+    assert client.get(f"/prompts/{p['id']}/segments", headers=h2).status_code == 404
+    assert client.post(f"/prompts/{p['id']}/segments/s1/strengthen", json={"addition": "x"}, headers=h2).status_code == 404
+
+
+def test_compose_from_segments_of_several_prompts(client):
+    h, pid = signup(client)
+    a = _install(client, h, pid)
+    b = client.post(f"/projects/{pid}/prompts", json={"title": "Mine", "sections": {"body": "## Tone\nformal\n\n## Other\nignore\n"}}, headers=h).json()
+    _, s35 = _seg(client, h, a["id"], "3.5.")
+    _, st = _seg(client, h, b["id"], "Tone")
+    out = client.post("/prompts/compose", json={"project_id": pid, "title": "Combo", "parts": [{"prompt_id": b["id"], "segment_ids": [st]}, {"prompt_id": a["id"], "segment_ids": [s35]}]}, headers=h).json()
+    assert out["compiled"].startswith("## Tone") and "### 3.5." in out["compiled"] and "ignore" not in out["compiled"]
+
+
+def test_run_with_selected_segments_only(client):
+    h, pid = signup(client)
+    p = _install(client, h, pid)
+    _, sid = _seg(client, h, p["id"], "3.5.")
+    r = client.post("/jobs", json={"project_id": pid, "prompt_id": p["id"], "segment_ids": [sid], "config": {}}, headers=h)
+    j = wait(client, h, r.json()["id"])
+    assert j["prompt_text"].startswith("### 3.5.") and "### 3.6" not in j["prompt_text"] and j["state"] == "COMPLETED"
+    bad = client.post("/jobs", json={"project_id": pid, "prompt_id": p["id"], "segment_ids": ["s9999"], "config": {}}, headers=h)
+    assert bad.status_code == 422
+
+
+def test_structured_prompt_can_be_strengthened_by_segment(client):
+    h, pid = signup(client)
+    p = client.post(f"/projects/{pid}/prompts", json={"title": "t", "sections": {"objective": "Do X", "instructions": "Be brief"}}, headers=h).json()
+    segs = client.get(f"/prompts/{p['id']}/segments", headers=h).json()
+    sid = next(s["id"] for s in segs if s["title"] == "Instructions")
+    v = client.post(f"/prompts/{p['id']}/segments/{sid}/strengthen", json={"addition": "- Cite sources"}, headers=h).json()
+    assert "## Objective" in v["compiled"] and "Cite sources" in v["compiled"]

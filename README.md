@@ -30,7 +30,15 @@ The license is also shown in the app (login screen, footer, Settings).
 | Prompts & packages | structured sections, versions, diff, search, tags, favorites, import/export; task packages (versions, compare, duplicate, run, export/import) |
 | References | upload (type/size limits), URL import with SSRF guard, roles, prompt-injection screening, untrusted-data fencing |
 | History & reports | structured event log; Markdown reports (EN/KO) generated only from stored records |
+| Layered prompts | Full-Markdown prompts split into **parts by heading**: run only selected parts, copy parts into a new prompt, compose parts from several prompts (API), or **strengthen one part** with an added rule (new version, rest untouched). Ships with a long example (resume bullets, Korean) |
 | UI | Web (EN/KO language switch at top), responsive, non-blocking side panel + queue |
+
+## Using your own AI accounts / cross-validating two models
+
+- ✅ **Supported (untested with real keys):** your own **API keys** (OpenAI / Anthropic) set as server env vars. Cross-validation = generate with one model and review with another, e.g. model `openai:<id>` + reviewer `anthropic:<id>` in the composer. Run the server on your own machine so keys stay with you.
+- ❌ **Not supported, on purpose:** signing in with a **ChatGPT / Claude chat subscription**. Those plans don't include API access, and reusing their login tokens for automation is unofficial and against the providers' terms.
+- ❌ **Not implemented:** entering per-user API keys in the UI (keys are server-side only).
+- 💡 Possible next step: a manual mode where you paste each chat's answer and the app compares them against your constraints.
 
 ## Quick start
 
@@ -47,7 +55,7 @@ Open http://localhost:3000, create an account, create a project, add a constrain
 
 Tests:
 ```bash
-npm run test:api   # 44 backend tests
+npm run test:api   # 54 backend tests
 npm run test:web   # 7 shared/i18n tests
 ```
 
@@ -92,6 +100,10 @@ Screens of the **English** UI, captured from the running app with the offline mo
 **Settings: external-provider consent, retention, license, data deletion**
 
 ![Settings: external-provider consent, retention, license, data deletion](docs/screenshots/en/09-settings.png)
+
+**Example prompt + parts: pick headings (e.g. 3.5 Korean style) to run, copy out, or strengthen**
+
+![Example prompt + parts: pick headings (e.g. 3.5 Korean style) to run, copy out, or strengthen](docs/screenshots/en/11-segments.png)
 
 **Mobile-width web (bottom tabs)**
 
