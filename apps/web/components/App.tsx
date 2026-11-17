@@ -52,7 +52,8 @@ export default function App() {
   if (!token) return <Login api={api} t={t} langSel={langSel} onToken={(tk: string) => { ls.set("raw.token", tk); setToken(tk); }} />;
 
   const open = (v: string, extra?: any) => { setSeed(extra ?? null); setView(v); window.scrollTo(0, 0); };
-  const running = jobs.filter((j) => !isTerminal(j.state));
+  const running = jobs.filter((j) => j.state === "QUEUED" || j.state === "RUNNING");
+  const pending = jobs.filter((j) => !isTerminal(j.state));
   const ctx = { api, lang, t, pid, me, refreshMe, open, jobId, setJobId, seed };
   return (
     <C.Provider value={ctx}>
@@ -76,7 +77,7 @@ export default function App() {
         {panel && <aside className="panel" aria-label={t("whileWorks")}><Queue jobs={jobs} /></aside>}
         <footer className="queue">
           <span>{t("queue")}: {running.length} {t("running").toLowerCase()}</span>
-          {running.slice(0, 3).map((j) => <a key={j.id} href="#" onClick={(e) => { e.preventDefault(); setJobId(j.id); open("job"); }}>{j.id} · {t("state_" + j.state)}{j.stage ? ` · ${j.stage}` : ""}</a>)}
+          {pending.slice(0, 3).map((j) => <a key={j.id} href="#" onClick={(e) => { e.preventDefault(); setJobId(j.id); open("job"); }}>{j.id} · {t("state_" + j.state)}{j.stage ? ` · ${j.stage}` : ""}</a>)}
           <span className="sp" style={{ flex: 1 }} />
           <span title={t("licenseText")}>{t("license")}: PolyForm Noncommercial 1.0.0</span>
         </footer>

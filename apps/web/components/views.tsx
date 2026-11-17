@@ -41,7 +41,7 @@ export function Home({ jobs }: { jobs: any[] }) {
   const { t, api, pid, open, setJobId } = useC();
   const [pk] = useLoad(() => api.packages(pid), [pid], [] as any[]);
   const [pr] = useLoad(() => api.prompts(pid), [pid], [] as any[]);
-  const run = jobs.filter((j) => !isTerminal(j.state));
+  const run = jobs.filter((j) => j.state === "QUEUED" || j.state === "RUNNING");
   const J = ({ j }: any) => <tr><td><a href="#" onClick={(e) => { e.preventDefault(); setJobId(j.id); open("job"); }}>{j.id}</a></td><td>{t("state_" + j.state)}</td><td><VStatus v={j.verification_status} /></td><td>{fmtCost(j.usage?.cost, t("unavailable"))}</td></tr>;
   return (
     <>
@@ -176,8 +176,8 @@ export function Constraints() {
           <div className="mute"><span className={`tag`}>{t("st_" + c.status)}</span><span className="tag">{t("scope_" + c.scope)}</span><span className="tag">P{c.priority}</span><span className="tag">{t("sev_" + c.severity)}</span><span className="tag">{t("ct_" + c.check.type)}{c.check.text || c.check.name ? `: ${c.check.text || c.check.name}` : ""}</span><span className="tag">v{c.version}</span>{over.has(c.id) && <span className="tag">{t("overridden")}</span>}</div>
           <p>
             {c.status === "conflicting" && <><span className="err">{t("conflictFound")}</span><br /><button onClick={() => act(api.post(`/constraints/${c.id}/resolve`, { action: "replace_existing" }))}>{t("resolveReplace")}</button> <button onClick={() => act(api.post(`/constraints/${c.id}/resolve`, { action: "keep_existing" }))}>{t("resolveKeep")}</button> <button onClick={() => act(api.post(`/constraints/${c.id}/resolve`, { action: "keep_both_priority" }))}>{t("resolveBoth")}</button> </>}
-            {c.status === "active" && <button onClick={() => act(api.patch(`/constraints/${c.id}`, { status: "disabled", reason: "disabled by user" }))}>{t("st_disabled")}</button>}
-            {c.status === "disabled" && <button onClick={() => act(api.patch(`/constraints/${c.id}`, { status: "active", reason: "re-enabled" }))}>{t("st_active")}</button>}{" "}
+            {c.status === "active" && <button onClick={() => act(api.patch(`/constraints/${c.id}`, { status: "disabled", reason: "disabled by user" }))}>{t("disable")}</button>}
+            {c.status === "disabled" && <button onClick={() => act(api.patch(`/constraints/${c.id}`, { status: "active", reason: "re-enabled" }))}>{t("enable")}</button>}{" "}
             <button onClick={async () => setVers({ id: c.id, list: await api.get(`/constraints/${c.id}/versions`) })}>{t("versions")}</button>
           </p>
           {vers?.id === c.id && <table><tbody>{vers.list.map((v: any) => <tr key={v.version}><td>v{v.version}</td><td>{v.snapshot.content}</td><td>{t("st_" + v.snapshot.status)}</td><td className="mute">{v.reason}</td></tr>)}</tbody></table>}
