@@ -1,0 +1,16 @@
+node_modules/
+.venv/
+.next/
+.expo/
+__pycache__/
+*.pyc
+.pytest_cache/
+services/api/data/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+tsconfig.tsbuildinfo
+.DS_Store

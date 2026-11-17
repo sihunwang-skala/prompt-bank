@@ -1,0 +1,14 @@
+{
+  "name": "recursive-ai-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "license": "SEE LICENSE IN LICENSE",
+  "workspaces": ["apps/web", "packages/*"],
+  "scripts": {
+    "api": "cd services/api && ../../.venv/bin/uvicorn app.main:app --reload --port 8000",
+    "web": "npm run dev -w apps/web",
+    "test:api": "cd services/api && ../../.venv/bin/python -m pytest -q",
+    "test:web": "npm test -w apps/web",
+    "build:web": "npm run build -w apps/web"
+  }
+}
