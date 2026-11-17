@@ -1,6 +1,6 @@
 **English** · [한국어](README.ko.md)
 
-# Recursive AI Workspace
+# Prompt Bank
 
 An AI prompt workspace built around two ideas: **recursive validation** of AI output, and **persistent instruction enforcement** so earlier rules are not silently forgotten. Results are labeled *Verified / Partially verified / Unverified / Failed / Requires human review* with the evidence stored, and every run shows its recorded cost and time.
 

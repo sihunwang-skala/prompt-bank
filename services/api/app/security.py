@@ -46,7 +46,7 @@ def fetch_url(url: str, max_redirects: int = 3) -> tuple[str, str, bytes]:
     with httpx.Client(timeout=10, follow_redirects=False) as c:
         for _ in range(max_redirects + 1):
             check_url(url)
-            with c.stream("GET", url, headers={"User-Agent": "RecursiveAIWorkspace/0.1"}) as r:
+            with c.stream("GET", url, headers={"User-Agent": "PromptBank/0.1"}) as r:
                 if r.is_redirect:
                     url = urljoin(url, r.headers.get("location", ""))
                     continue

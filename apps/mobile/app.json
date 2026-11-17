@@ -1,2 +1,2 @@
-{ "expo": { "name": "Recursive AI Workspace", "slug": "recursive-ai-workspace", "version": "0.1.0", "orientation": "portrait", "userInterfaceStyle": "automatic",
-  "ios": { "bundleIdentifier": "com.example.recursiveaiworkspace" }, "android": { "package": "com.example.recursiveaiworkspace" } } }
+{ "expo": { "name": "Prompt Bank", "slug": "prompt-bank", "version": "0.1.0", "orientation": "portrait", "userInterfaceStyle": "automatic",
+  "ios": { "bundleIdentifier": "com.example.promptbank" }, "android": { "package": "com.example.promptbank" } } }

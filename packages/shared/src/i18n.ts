@@ -2,7 +2,7 @@ export type Lang = "en" | "ko";
 export const LANGS: { code: Lang; label: string }[] = [{ code: "en", label: "English" }, { code: "ko", label: "한국어" }];
 
 const en = {
-  appName: "Recursive AI Workspace", language: "Language", signIn: "Sign in", register: "Create account", email: "Email", password: "Password (8+ chars)", signOut: "Sign out",
+  appName: "Prompt Bank", language: "Language", signIn: "Sign in", register: "Create account", email: "Email", password: "Password (8+ chars)", signOut: "Sign out",
   project: "Project", newProject: "New project", create: "Create", save: "Save", cancel: "Cancel", delete: "Delete", edit: "Edit", add: "Add", run: "Run", search: "Search", loading: "Loading…", none: "Nothing here yet.", error: "Error",
   navHome: "Home", navCompose: "Compose", navConstraints: "Constraints", navLibrary: "Library", navRefs: "References", navHistory: "History", navSettings: "Settings",
   home: "Home", recentTasks: "Recent tasks", running: "Running now", savedPackages: "Task packages", recentPrompts: "Recent prompts", quickActions: "Quick actions",
@@ -36,7 +36,7 @@ const en = {
 
 export type Key = keyof typeof en;
 const ko: Record<Key, string> = {
-  appName: "재귀 AI 워크스페이스", language: "언어", signIn: "로그인", register: "계정 만들기", email: "이메일", password: "비밀번호 (8자 이상)", signOut: "로그아웃",
+  appName: "프롬프트 뱅크", language: "언어", signIn: "로그인", register: "계정 만들기", email: "이메일", password: "비밀번호 (8자 이상)", signOut: "로그아웃",
   project: "프로젝트", newProject: "새 프로젝트", create: "만들기", save: "저장", cancel: "취소", delete: "삭제", edit: "수정", add: "추가", run: "실행", search: "검색", loading: "불러오는 중…", none: "아직 없습니다.", error: "오류",
   navHome: "홈", navCompose: "작성", navConstraints: "제약", navLibrary: "라이브러리", navRefs: "참고자료", navHistory: "이력", navSettings: "설정",
   home: "홈", recentTasks: "최근 작업", running: "실행 중", savedPackages: "작업 패키지", recentPrompts: "최근 프롬프트", quickActions: "빠른 실행",
