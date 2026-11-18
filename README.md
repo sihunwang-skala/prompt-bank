@@ -115,4 +115,4 @@ Screens of the **English** UI, captured from the running app with the offline mo
 ![Mobile-width web (bottom tabs)](docs/screenshots/en/10-mobile-web-home.png)
 
 ## Docs
-[Architecture](docs/ARCHITECTURE.md) · [Requirements registry](docs/REQUIREMENTS.md) · [Security](docs/SECURITY.md) · [Deployment](docs/DEPLOYMENT.md) · [Test report](docs/TEST_REPORT.md) · [Limitations](docs/LIMITATIONS.md)
+[Architecture](docs/ARCHITECTURE.md) · [Requirements registry](docs/REQUIREMENTS.md) · [Evaluation contract](docs/EVALUATION_CONTRACT.md) · [Security](docs/SECURITY.md) · [Deployment](docs/DEPLOYMENT.md) · [Test report](docs/TEST_REPORT.md) · [Limitations](docs/LIMITATIONS.md)
