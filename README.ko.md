@@ -115,4 +115,4 @@ npm run test:web   # 공유/i18n 테스트 7개
 ![모바일 폭 웹 (하단 탭)](docs/screenshots/ko/10-mobile-web-home.png)
 
 ## 문서
-[아키텍처](docs/ARCHITECTURE.md) · [요구사항 레지스트리](docs/REQUIREMENTS.md) · [보안](docs/SECURITY.md) · [배포](docs/DEPLOYMENT.md) · [테스트 보고서](docs/TEST_REPORT.md) · [한계](docs/LIMITATIONS.md) (문서는 영어로 작성)
+[아키텍처](docs/ARCHITECTURE.md) · [요구사항 레지스트리](docs/REQUIREMENTS.md) · [평가 계약](docs/EVALUATION_CONTRACT.md) · [보안](docs/SECURITY.md) · [배포](docs/DEPLOYMENT.md) · [테스트 보고서](docs/TEST_REPORT.md) · [한계](docs/LIMITATIONS.md) (문서는 영어로 작성)
