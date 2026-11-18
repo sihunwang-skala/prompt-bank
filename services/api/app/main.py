@@ -10,7 +10,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request, UploadFile, File, 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import select, or_
-from . import segments as SEG, config, constraints as C, history, jobs as J, reports, refs as R, security, pricing, engine as E
+from . import crosscheck as X, segments as SEG, config, constraints as C, history, jobs as J, reports, refs as R, security, pricing, engine as E
 from .db import get_db, init_engine, now, session
 from .models import *
 from .providers import get_provider, parse_json, ProviderError
@@ -758,3 +758,92 @@ def models():
     return {"models": [{"id": m, "mock": m.startswith("mock-"), "priced": m in t} for m in ["mock-1", "mock-forgetful", "mock-stubborn"]]
             + [{"id": "openai:<model-id>", "mock": False, "priced": False}, {"id": "anthropic:<model-id>", "mock": False, "priced": False}],
             "pricing_version": pricing.PRICING_VERSION}
+
+
+# ---------- manual cross-validation (no model calls, no accounts) ----------
+def _x_source(b, u, db):
+    owned(db, Project, b.project_id, u)
+    task = b.task
+    if b.prompt_id:
+        task = _prompt_out(db, owned(db, Prompt, b.prompt_id, u))["compiled"]
+        if b.segment_ids:
+            try:
+                task = SEG.select(task, b.segment_ids)
+            except KeyError as e:
+                raise HTTPException(422, f"unknown segment {e}")
+    if not task or not task.strip():
+        raise HTTPException(422, "task or prompt_id required")
+    q = select(Constraint).where(Constraint.user_id == u.id, Constraint.status == "active",
+                                 (Constraint.project_id == b.project_id) | (Constraint.project_id.is_(None)))
+    cons = [J.constraint_dict(c) for c in db.scalars(q) if b.constraint_ids is None or c.id in b.constraint_ids or c.scope == "global"]
+    return task, C.resolve_effective(cons)["effective"]
+
+
+def _x_out(x, full=True):
+    d = {"id": x.id, "project_id": x.project_id, "prompt_id": x.prompt_id, "created_at": x.created_at,
+         "labels": [a["label"] for a in x.answers], "best": x.comparison.get("best"), "tie": x.comparison.get("tie"),
+         "summary": [{"label": a["label"], "passed": a["passed"], "failed": a["failed"], "unchecked": a["unchecked"],
+                      "critical_failures": len(a["critical_failures"])} for a in x.answers]}
+    if full:
+        d |= {"task_text": x.task_text, "constraints": x.constraint_snapshot, "answers": x.answers, "comparison": x.comparison,
+              "reviews": x.reviews,
+              "review_prompts": {a["label"]: X.review_prompt(x.task_text, x.constraint_snapshot, a["label"], a["text"]) for a in x.answers}}
+    return d
+
+
+@app.post("/crosschecks/prepare")
+def x_prepare(b: XSource, u: User = Depends(current_user), db=Depends(get_db)):
+    task, cons = _x_source(b, u, db)
+    return {"question": X.question(task, cons), "task": task, "constraint_count": len(cons),
+            "deterministic_count": sum(1 for c in cons if (c["check"] or {}).get("type", "semantic") != "semantic")}
+
+
+@app.post("/crosschecks")
+def x_create(b: XCreate, u: User = Depends(current_user), db=Depends(get_db)):
+    task, cons = _x_source(b, u, db)
+    answers, seen = [], set()
+    for i, a in enumerate(b.answers, 1):
+        label = X.clean_label(a.label, f"Chat {i}")
+        if label in seen:
+            raise HTTPException(422, f"duplicate label '{label}'")
+        seen.add(label)
+        answers.append(X.check_answer(label, a.text, cons))
+    x = CrossCheck(user_id=u.id, project_id=b.project_id, prompt_id=b.prompt_id, task_text=task, constraint_snapshot=cons,
+                   answers=answers, comparison=X.compare(answers, cons), reviews=[])
+    db.add(x); db.commit()
+    history.log(db, u.id, "crosscheck.created", "crosscheck", x.id, b.project_id, labels=sorted(seen), best=x.comparison["best"])
+    return _x_out(x)
+
+
+@app.get("/crosschecks")
+def x_list(project_id: str | None = None, u: User = Depends(current_user), db=Depends(get_db)):
+    q = select(CrossCheck).where(CrossCheck.user_id == u.id).order_by(CrossCheck.created_at.desc()).limit(100)
+    if project_id:
+        q = q.where(CrossCheck.project_id == project_id)
+    return [_x_out(x, full=False) for x in db.scalars(q)]
+
+
+@app.get("/crosschecks/{id}")
+def x_get(id: str, u: User = Depends(current_user), db=Depends(get_db)):
+    return _x_out(owned(db, CrossCheck, id, u))
+
+
+@app.post("/crosschecks/{id}/reviews")
+def x_review(id: str, b: XReview, u: User = Depends(current_user), db=Depends(get_db)):
+    x = owned(db, CrossCheck, id, u)
+    if b.target_label not in [a["label"] for a in x.answers]:
+        raise HTTPException(422, "unknown target_label")
+    rv = {"reviewer_label": X.clean_label(b.reviewer_label, "Reviewer"), "target_label": b.target_label, "text": b.text,
+          "source": "user_pasted", "created_at": now().isoformat(), "injection_flags": security.scan_injection(b.text)}
+    x.reviews = [*x.reviews, rv]
+    db.commit()
+    history.log(db, u.id, "crosscheck.review_added", "crosscheck", id, x.project_id, target=b.target_label)
+    return _x_out(x)
+
+
+@app.delete("/crosschecks/{id}")
+def x_delete(id: str, u: User = Depends(current_user), db=Depends(get_db)):
+    x = owned(db, CrossCheck, id, u)
+    history.log(db, u.id, "crosscheck.deleted", "crosscheck", id, x.project_id)
+    db.delete(x); db.commit()
+    return {"deleted": True}

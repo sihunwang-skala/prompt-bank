@@ -2,10 +2,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Api, LANGS, Lang, detectLang, isTerminal } from "@raw/shared";
 import { C, useT } from "./ctx";
-import { Home, Compose, JobView, Constraints, Library, Refs, HistoryView, Settings, Queue } from "./views";
+import { Home, Compose, JobView, Constraints, Library, CrossCheck, Refs, HistoryView, Settings, Queue } from "./views";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const NAV = [["home", "navHome"], ["compose", "navCompose"], ["constraints", "navConstraints"], ["library", "navLibrary"], ["refs", "navRefs"], ["history", "navHistory"], ["settings", "navSettings"]] as const;
+const NAV = [["home", "navHome"], ["compose", "navCompose"], ["constraints", "navConstraints"], ["library", "navLibrary"], ["cross", "navCross"], ["refs", "navRefs"], ["history", "navHistory"], ["settings", "navSettings"]] as const;
 const ls = { get: (k: string) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k: string, v: string) => { try { localStorage.setItem(k, v); } catch {} } };
 
 export default function App() {
@@ -72,7 +72,7 @@ export default function App() {
         <nav className="side" aria-label="Main">{NAV.map(([k, l]) => <button key={k} aria-current={view === k ? "page" : undefined} onClick={() => open(k)}>{t(l)}</button>)}</nav>
         <main>
           {!pid ? <p>{t("newProject")} ↑</p> : view === "home" ? <Home jobs={jobs} /> : view === "compose" ? <Compose /> : view === "job" ? <JobView /> :
-            view === "constraints" ? <Constraints /> : view === "library" ? <Library /> : view === "refs" ? <Refs /> : view === "history" ? <HistoryView /> : <Settings onDeleted={() => { ls.set("raw.token", ""); setToken(null); }} />}
+            view === "constraints" ? <Constraints /> : view === "library" ? <Library /> : view === "cross" ? <CrossCheck /> : view === "refs" ? <Refs /> : view === "history" ? <HistoryView /> : <Settings onDeleted={() => { ls.set("raw.token", ""); setToken(null); }} />}
         </main>
         {panel && <aside className="panel" aria-label={t("whileWorks")}><Queue jobs={jobs} /></aside>}
         <footer className="queue">

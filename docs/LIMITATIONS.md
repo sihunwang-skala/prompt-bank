@@ -11,3 +11,4 @@ Not done / not verified (exact blockers in parentheses):
 
 - **Accounts**: no login with ChatGPT/Claude subscriptions (not API access; unofficial token reuse violates provider terms). No per-user API-key entry in the UI (server env only). Cross-model validation (`model` + `reviewer_model`) is implemented but untested with real providers.
 - **Segments**: heading-based only; composing parts from several prompts is API-only (no UI); segments of structured prompts are converted to one Markdown body when strengthened.
+- **Manual cross-check**: pasted answers are user input and cannot be verified as coming from the named chat. Ranking uses deterministic constraints only; semantic constraints stay unchecked. Reviews from other chats are stored as text, not scored. Not covered by browser E2E tests (checked manually + screenshot).

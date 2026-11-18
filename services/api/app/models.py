@@ -179,3 +179,18 @@ class HistoryEvent(Base):
     entity_id: Mapped[str] = mapped_column(String(40), default="")
     data: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
+class CrossCheck(Base):
+    """A manual cross-validation: answers the user pasted from different chats, checked locally."""
+    __tablename__ = "cross_checks"
+    id: Mapped[str] = _pk("xck")
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True)
+    prompt_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    task_text: Mapped[str] = mapped_column(Text)
+    constraint_snapshot: Mapped[list] = mapped_column(JSON, default=list)
+    answers: Mapped[list] = mapped_column(JSON, default=list)
+    comparison: Mapped[dict] = mapped_column(JSON, default=dict)
+    reviews: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

@@ -165,3 +165,26 @@ class ComposeIn(BaseModel):
     project_id: str
     title: str = Field(min_length=1, max_length=200)
     parts: list[ComposePart] = Field(min_length=1, max_length=30)
+
+
+class XSource(BaseModel):
+    project_id: str
+    prompt_id: str | None = None
+    segment_ids: list[str] | None = None
+    task: str | None = Field(default=None, max_length=60_000)
+    constraint_ids: list[str] | None = None
+
+
+class XAnswer(BaseModel):
+    label: str = Field(default="", max_length=60)
+    text: str = Field(min_length=1, max_length=60_000)
+
+
+class XCreate(XSource):
+    answers: list[XAnswer] = Field(min_length=2, max_length=6)
+
+
+class XReview(BaseModel):
+    reviewer_label: str = Field(default="", max_length=60)
+    target_label: str = Field(min_length=1, max_length=60)
+    text: str = Field(min_length=1, max_length=60_000)

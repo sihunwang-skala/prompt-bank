@@ -11,6 +11,7 @@ Status: ✅ implemented+tested · 🟡 partial · ❌ not implemented.
 | G | Per-response cost/time transparency | ✅ |
 | H | History & reports | 🟡 Markdown only; no PDF |
 | + | Layered prompts: examples, heading segments, extract/compose/strengthen | ✅ API+tests, 🟡 compose has no UI |
+| + | Manual cross-check: paste answers from other chats, compare vs constraints (no model call) | ✅ API+tests+UI; compare is deterministic-only |
 | Platforms | Web ✅ · iOS/Android ❌ (unbuilt scaffold) |
 | i18n | EN/KO with language switch at top | ✅ web, 🟡 mobile (scaffold) |
 | License | PolyForm Noncommercial 1.0.0 displayed in README, app | ✅ |

@@ -248,6 +248,77 @@ export function Library() {
   );
 }
 
+export function CrossCheck() {
+  const { t, api, pid } = useC();
+  const [prompts] = useLoad(() => api.prompts(pid, ""), [pid], [] as any[]);
+  const [past, reloadPast] = useLoad(() => api.get(`/crosschecks?project_id=${pid}`), [pid], [] as any[]);
+  const [promptId, setPromptId] = useState(""); const [task, setTask] = useState(""); const [q, setQ] = useState<any>(null);
+  const [answers, setAnswers] = useState([{ label: "ChatGPT", text: "" }, { label: "Claude", text: "" }]);
+  const [x, setX] = useState<any>(null); const [err, setErr] = useState(""); const [copied, setCopied] = useState("");
+  const [rv, setRv] = useState({ reviewer_label: "", target_label: "", text: "" });
+  const src = () => ({ project_id: pid, ...(promptId ? { prompt_id: promptId } : { task }) });
+  const copy = async (k: string, text: string) => { try { await navigator.clipboard.writeText(text); setCopied(k); setTimeout(() => setCopied(""), 1500); } catch { /* clipboard unavailable: text is selectable */ } };
+  const prepare = async () => { setErr(""); try { setQ(await api.post("/crosschecks/prepare", src())); } catch (e: any) { setErr(e.message); } };
+  const compare = async () => {
+    setErr(""); const filled = answers.filter((a) => a.text.trim());
+    if (filled.length < 2) return setErr(t("xMinTwo"));
+    try { const r = await api.post("/crosschecks", { ...src(), answers: filled }); setX(r); setRv({ reviewer_label: "", target_label: r.labels[0], text: "" }); reloadPast(); } catch (e: any) { setErr(e.message); }
+  };
+  const addReview = async () => { setErr(""); try { const r = await api.post(`/crosschecks/${x.id}/reviews`, rv); setX(r); setRv({ ...rv, text: "" }); } catch (e: any) { setErr(e.message); } };
+  const loadPast = async (id: string) => { try { const r = await api.get(`/crosschecks/${id}`); setX(r); setRv({ reviewer_label: "", target_label: r.labels[0], text: "" }); } catch (e: any) { setErr(e.message); } };
+  const upd = (i: number, k: "label" | "text", v: string) => setAnswers((a) => a.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
+  return (
+    <>
+      <h2>{t("xTitle")}</h2>
+      <p>{t("xIntro")}</p><p className="mute">{t("xNoModel")}</p>
+      <Err e={err} />
+      <section className="card"><h3>{t("xStep1")}</h3>
+        <div className="row">
+          <div><label htmlFor="xp">{t("xPrompt")}</label>
+            <select id="xp" value={promptId} onChange={(e) => { setPromptId(e.target.value); setQ(null); }}><option value="">—</option>{prompts.map((p: any) => <option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
+          {!promptId && <div><label htmlFor="xt">{t("xTypeTask")}</label><textarea id="xt" rows={3} value={task} onChange={(e) => { setTask(e.target.value); setQ(null); }} /></div>}
+          <span className="fit"><button disabled={!promptId && !task.trim()} onClick={prepare}>{t("xPrepare")}</button></span>
+        </div>
+        {q && <><label>{t("xQuestion")}</label><pre>{q.question}</pre><button onClick={() => copy("q", q.question)}>{copied === "q" ? t("xCopied") : t("xCopy")}</button></>}
+      </section>
+      <section className="card"><h3>{t("xStep2")}</h3>
+        {answers.map((a, i) => (
+          <div key={i}>
+            <label htmlFor={`xl${i}`}>{t("xLabel")}</label><input id={`xl${i}`} value={a.label} maxLength={60} onChange={(e) => upd(i, "label", e.target.value)} />
+            <label htmlFor={`xa${i}`}>{t("xAnswer")}</label><textarea id={`xa${i}`} rows={5} value={a.text} onChange={(e) => upd(i, "text", e.target.value)} />
+          </div>
+        ))}
+        <p>{answers.length < 6 && <button onClick={() => setAnswers([...answers, { label: `Chat ${answers.length + 1}`, text: "" }])}>+ {t("xAddAnswer")}</button>}{" "}
+          <button className="primary" onClick={compare} disabled={!promptId && !task.trim()}>{t("xCompare")}</button></p>
+      </section>
+      {x && <section className="card"><h3>{t("xStep3")} · {t("xResult")}</h3>
+        <p className="badge">{x.comparison.tie ? t("xTie") : `${t("xBest")}: ${x.comparison.best}`}</p>
+        <table><thead><tr><th>{t("xLabel")}</th><th>{t("xPassed")}</th><th>{t("xFailed")}</th><th>{t("xUnchecked")}</th><th>{t("xCritical")}</th></tr></thead>
+          <tbody>{x.answers.map((a: any) => (<tr key={a.label}><td>{a.label}{a.injection_flags?.length > 0 && <span className="fail" title={t("xFlag")}> ⚠</span>}</td><td className="pass">{a.passed}</td><td className="fail">{a.failed}</td><td className="unchecked">{a.unchecked}</td><td>{a.critical_failures.length}</td></tr>))}</tbody></table>
+        <p className="mute">{t("xSemanticNote")}</p>
+        {x.comparison.disagreements.length > 0 && <><h4>{t("xDisagree")}</h4><ul>{x.comparison.disagreements.map((d: any) => <li key={d.constraint_id}>{d.content}: {Object.entries(d.by_answer).map(([l, s]: any) => <span key={l} className={s}> {l}={t("x" + s[0].toUpperCase() + s.slice(1) + (s === "pass" ? "ed" : s === "fail" ? "ed" : ""))}</span>)}</li>)}</ul></>}
+        {x.comparison.pairs.map((p: any) => (
+          <details key={p.a + p.b}><summary>{p.a} ↔ {p.b} · {t("xSimilarity")} {Math.round(p.similarity * 100)}%</summary>
+            {p.only_in_a.length > 0 && <><b>{t("xOnlyIn")} {p.a}</b><ul>{p.only_in_a.map((s: string) => <li key={s}>{s}</li>)}</ul></>}
+            {p.only_in_b.length > 0 && <><b>{t("xOnlyIn")} {p.b}</b><ul>{p.only_in_b.map((s: string) => <li key={s}>{s}</li>)}</ul></>}
+            <b>{t("xDiff")}</b><pre>{p.diff || "—"}</pre></details>
+        ))}
+        <h4>{t("xReviewPrompt")}</h4>
+        {Object.entries(x.review_prompts).map(([l, pr]: any) => (<details key={l}><summary>{l}</summary><pre>{pr}</pre><button onClick={() => copy(l, pr)}>{copied === l ? t("xCopied") : t("xCopy")}</button></details>))}
+        <h4>{t("xReviewAdd")}</h4>
+        <div className="row">
+          <div><label htmlFor="rvr">{t("xReviewer")}</label><input id="rvr" value={rv.reviewer_label} maxLength={60} onChange={(e) => setRv({ ...rv, reviewer_label: e.target.value })} /></div>
+          <div><label htmlFor="rvt">{t("xTarget")}</label><select id="rvt" value={rv.target_label} onChange={(e) => setRv({ ...rv, target_label: e.target.value })}>{x.labels.map((l: string) => <option key={l}>{l}</option>)}</select></div>
+        </div>
+        <textarea aria-label={t("xReviewAdd")} rows={4} value={rv.text} onChange={(e) => setRv({ ...rv, text: e.target.value })} />
+        <p><button disabled={!rv.text.trim()} onClick={addReview}>{t("add")}</button></p>
+        {x.reviews.length > 0 && <><h4>{t("xReviews")}</h4>{x.reviews.map((r: any, i: number) => <div key={i}><b>{r.reviewer_label} → {r.target_label}</b><pre>{r.text}</pre></div>)}</>}
+      </section>}
+      {past.length > 0 && <section className="card"><h3>{t("xPast")}</h3><ul>{past.map((p: any) => <li key={p.id}><a href="#" onClick={(e) => { e.preventDefault(); loadPast(p.id); }}>{new Date(p.created_at).toLocaleString()} · {p.labels.join(" / ")}{p.best ? ` · ★ ${p.best}` : ""}</a></li>)}</ul></section>}
+    </>
+  );
+}
+
 export function Refs() {
   const { t, api, pid } = useC();
   const [refs, reload, err] = useLoad(() => api.refs(pid), [pid], [] as any[]);

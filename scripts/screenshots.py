@@ -50,8 +50,8 @@ def seed():
     time.sleep(1.5)
     return r["token"], pid, j["id"]
 
-NAMES = {"en": {"draft": "Draft structured prompt", "compare": "Compare", "gen": "Generate report", "parts": "Parts"},
-         "ko": {"draft": "구조화된 프롬프트 초안", "compare": "비교", "gen": "보고서 생성", "parts": "구간"}}
+NAMES = {"en": {"draft": "Draft structured prompt", "compare": "Compare", "gen": "Generate report", "parts": "Parts", "prep": "Build question", "cmp": "Compare answers"},
+         "ko": {"draft": "구조화된 프롬프트 초안", "compare": "비교", "gen": "보고서 생성", "parts": "구간", "prep": "질문 만들기", "cmp": "답변 비교"}}
 
 def shoot(br, token, jid, lang):
     n, out = NAMES[lang], OUT / lang; out.mkdir(parents=True, exist_ok=True)
@@ -77,10 +77,17 @@ def shoot(br, token, jid, lang):
     card.get_by_role("button", name=n["parts"], exact=True).click(); pg.wait_for_timeout(600)
     pg.get_by_label("3.5. 한국어 이력서 문체 및 문법").first.check() if False else pg.locator("label", has_text="3.5. 한국어 이력서").first.locator("input").check()
     pg.wait_for_timeout(300); card.scroll_into_view_if_needed(); pg.screenshot(path=out / "11-segments.png", full_page=True)
-    nav(pg, 4); pg.screenshot(path=out / "07-references.png", full_page=True)
-    nav(pg, 5); pg.fill("#rq", "Which requirements were changed?" if lang == "en" else "어떤 요구사항이 바뀌었나?")
+    nav(pg, 4)
+    ko = lang == "ko"
+    pg.fill("#xt", "한국 AI 노트 앱 시장을 분석해 줘" if ko else "Analyze the Korean AI note-taking market")
+    pg.get_by_role("button", name=n["prep"]).click(); pg.wait_for_timeout(500)
+    pg.fill("#xa0", "## Summary\nThe market is growing.\n\n## Counterarguments\nIncumbents are strong." if not ko else "## 요약\n시장은 성장 중입니다.\n\n## Counterarguments\n기존 강자가 강합니다.")
+    pg.fill("#xa1", "## Summary\nSuccess is guaranteed in this market." if not ko else "## 요약\n이 시장에서 성공은 guaranteed 입니다.")
+    pg.get_by_role("button", name=n["cmp"]).click(); pg.wait_for_timeout(900); pg.screenshot(path=out / "12-cross-check.png", full_page=True)
+    nav(pg, 5); pg.screenshot(path=out / "07-references.png", full_page=True)
+    nav(pg, 6); pg.fill("#rq", "Which requirements were changed?" if lang == "en" else "어떤 요구사항이 바뀌었나?")
     pg.get_by_role("button", name=n["gen"]).click(); pg.wait_for_timeout(900); pg.screenshot(path=out / "08-history-reports.png", full_page=True)
-    nav(pg, 6); pg.screenshot(path=out / "09-settings.png", full_page=True)
+    nav(pg, 7); pg.screenshot(path=out / "09-settings.png", full_page=True)
     mb = page(390, 844); mb.wait_for_timeout(600); mb.screenshot(path=out / "10-mobile-web-home.png")
 
 def main():
